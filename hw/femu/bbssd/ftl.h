@@ -12,7 +12,7 @@ enum {
     NAND_WRITE = 1,
     NAND_ERASE = 2,
 
-    NAND_READ_LATENCY = 40000,
+    NAND_READ_LATENCY = 15,
     NAND_PROG_LATENCY = 200000,
     NAND_ERASE_LATENCY = 2000000,
 };
@@ -46,6 +46,7 @@ enum {
 
 
 #define BLK_BITS    (16)
+#define SBLK_BITS    (16)
 #define PG_BITS     (16)
 #define SEC_BITS    (8)
 #define PL_BITS     (8)
@@ -57,6 +58,7 @@ struct ppa {
     union {
         struct {
             uint64_t blk : BLK_BITS;
+            uint64_t sblk : SBLK_BITS;
             uint64_t pg  : PG_BITS;
             uint64_t sec : SEC_BITS;
             uint64_t pl  : PL_BITS;
@@ -75,13 +77,23 @@ struct nand_page {
     nand_sec_status_t *sec;
     int nsecs;
     int status;
+    int ispc;
+    int vspc;
 };
-
-struct nand_block {
+struct nand_subblock {
     struct nand_page *pg;
     int npgs;
     int ipc; /* invalid page count */
     int vpc; /* valid page count */
+    int erase_cnt;
+    int wp; /* current write pointer */
+};
+
+struct nand_block {
+    struct nand_subblock *sblk;
+    int nsblks;
+    int isblkc; /* invalid page count */
+    int vsblkc; /* valid page count */
     int erase_cnt;
     int wp; /* current write pointer */
 };
@@ -110,7 +122,8 @@ struct ssd_channel {
 struct ssdparams {
     int secsz;        /* sector size in bytes */
     int secs_per_pg;  /* # of sectors per page */
-    int pgs_per_blk;  /* # of NAND pages per block */
+    int pgs_per_sblk; /* # of NAND pages per subblock */
+    int sblks_per_blk; /* # of NAND subblocks per block */
     int blks_per_pl;  /* # of blocks per plane */
     int pls_per_lun;  /* # of planes per LUN (Die) */
     int luns_per_ch;  /* # of LUNs per channel */
@@ -130,6 +143,7 @@ struct ssdparams {
     bool enable_gc_delay;
 
     /* below are all calculated values */
+    int secs_per_sblk; /* # of sectors per subblock */
     int secs_per_blk; /* # of sectors per block */
     int secs_per_pl;  /* # of sectors per plane */
     int secs_per_lun; /* # of sectors per LUN */
@@ -170,7 +184,9 @@ struct write_pointer {
     struct line *curline;
     int ch;
     int lun;
+    int sec;
     int pg;
+    int sblk;
     int blk;
     int pl;
 };
@@ -198,11 +214,43 @@ struct ssd {
     char *ssdname;
     struct ssdparams sp;
     struct ssd_channel *ch;
-    struct ppa *maptbl; /* page level mapping table */
+    struct ppa **maptbl; /* page level mapping table */
+    struct ppa *maptbl2;
+    int *usgtbl;
+    uint64_t *sblk_usgtbl;
+    uint64_t *sblk_movedPg_usgtbl;
+    uint64_t *sblk_freePg_usgtbl;
+    uint64_t *sblk_ecValue;
+    uint64_t *sblk_cnttbl;
+    uint64_t *priority_erased_sblk;
+    uint64_t *erase_sblk;
+    uint64_t *move_sblk;
+    uint64_t *reallocation_sblk;
+    uint64_t *move_data;
+    uint64_t *adjust_data;
+    uint64_t *reallocation_data;
     uint64_t *rmap;     /* reverse mapptbl, assume it's stored in OOB */
     struct write_pointer wp;
+    struct write_pointer hot_wp;
     struct line_mgmt lm;
+    uint64_t select_time;
+    uint64_t erase_time;
+    uint64_t move_time;
+    uint64_t reallocation_time;
 
+    uint64_t freePg_signal;
+    uint64_t current_written_data_cnt;
+    uint64_t total_written_data_cnt;
+    uint64_t moved_data_cnt;
+    uint64_t reallocation_data_cnt;
+    uint64_t erased_sblk_cnt;
+    uint64_t reallocation_sblk_cnt;
+    uint64_t erased_sblk_finalEC;
+    uint64_t reallocation_sblk_finalEC;
+
+    uint64_t status;
+    uint64_t is_gc;
+    uint64_t is_data_reallocation;
     /* lockless ring for communication with NVMe IO thread */
     struct rte_ring **to_ftl;
     struct rte_ring **to_poller;
