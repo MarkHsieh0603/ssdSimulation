@@ -35,3 +35,5 @@ SSD FTL (Flash Translation Layer) 是一個管理固態硬碟 (SSD) 上數據存
 2. 測試環境: FIO
 3. 程式語言: C Language
 4. 作業系統: Linux
+
+# 實驗結果
