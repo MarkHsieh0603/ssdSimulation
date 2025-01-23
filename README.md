@@ -41,9 +41,9 @@ SSD FTL (Flash Translation Layer) 是一個管理固態硬碟 (SSD) 上數據存
    a. 寫入資料量從1GB到4GB增加，總花費的時間也相應增加。<br>
    b. 原先架構所需的搜尋時間大約是Subblock預搜尋架構的1.06倍至1.19倍。<br>
    c. 寫入量增加會讓預搜尋架構優化效果更為顯著。<br><br>
-   ![示例圖片]([https://github.com/MarkHsieh0603/ssdSimulation/blob/master/FEMU-master/images/PreSearch])
+   ![示例圖片]([https://github.com/MarkHsieh0603/ssdSimulation/blob/master/FEMU-master/images/PreSearch.PNG])
 
 2. EC Value優化<br>
    a. 相同的Valid Page和Free Page數量下，Free Page占比越高，擦除成本的降低效果越明顯。<br>
    b. EC Value優化後對於不同條件下的擦除成本都有一定程度的優化。<br><br>
-![示例圖片]([https://github.com/MarkHsieh0603/ssdSimulation/blob/master/FEMU-master/images/ECValue])
+![示例圖片]([https://github.com/MarkHsieh0603/ssdSimulation/blob/master/FEMU-master/images/ECValue.PNG])
