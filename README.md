@@ -1,52 +1,84 @@
 # 專案動機與目標
-1. 動機: <br>SSD 以其高速存取特性，廣泛應用於高性能計算、伺服器及數據庫領域。然而，由於 SSD 使用 NAND Flash 作為存儲介質，每個存儲單元的擦寫次數有限（例如，消費級 SSD 約 3,000 次 P/E 次數，企業級 SSD 可達 10,000 次），頻繁的寫入操作可能導致壽命縮短。
-2. 挑戰: <br>隨著數據量的增長，SSD 需要頻繁進行 GC（Garbage Collection），影響性能和壽命。
-現有 FTL（Flash Translation Layer）架構在搜尋可用儲存空間時，效率較低，影響 I/O 性能。
-擦除操作的成本較高，尤其是當 Free Page（可用頁面）較少時，影響存儲效率
-3. 解決方法: <br>本專案透過預搜尋機制降低可用存儲空間的搜尋時間，並提出EC Value 指標來減少擦除成本，從而提升 SSD 整體效能並延長壽命。
+
+## 1. 動機
+SSD 以其高速存取特性，廣泛應用於高性能計算、伺服器及數據庫領域。然而，由於 SSD 使用 NAND Flash 作為存儲介質，每個存儲單元的擦寫次數有限（例如，消費級 SSD 約 3,000 次 P/E 次數，企業級 SSD 可達 10,000 次），頻繁的寫入操作可能導致壽命縮短。
+
+### 挑戰
+- **數據量增長**：SSD 需要頻繁進行 GC（Garbage Collection），影響性能和壽命。
+- **FTL 效率問題**：現有架構在搜尋可用存儲空間時，效率較低，影響 I/O 性能。
+- **擦除成本高**：當 Free Page（可用頁面）較少時，影響存儲效率。
+
+## 2. 解決方案
+本專案透過 **預搜尋機制** 降低可用存儲空間的搜尋時間，並提出 **EC Value 指標** 來減少擦除成本，從而提升 SSD 整體效能並延長壽命。
+
+---
 
 # 實驗環境
-1. 專案環境: FEMU
-2. 測試環境: FIO
-3. 程式語言: C Language
-4. 作業系統: Linux
+- **專案環境**：FEMU
+- **測試環境**：FIO
+- **程式語言**：C Language
+- **作業系統**：Linux
+
+---
 
 # FEMU 介紹
-FEMU (Fast Emulation of Non-Volatile Memory) 是一個開源項目，專注於提供非易失性記憶體（NVM，Non-Volatile Memory）的快速模擬環境。這個工具通常用於研究和開發需要高性能存儲系統的應用程序。
 
-# FEMU 特性
-1. 快速存儲模擬：<br>
-FEMU 提供一個高效且可擴展的儲存模擬平台，用以模擬現代非揮發性儲存設備的技術（如 NAND）。
-它可以精確地模擬儲存設備的行為，例如讀取、寫入、擦除等操作，幫助開發人員更好地分析和優化儲存系統。<br><br>
-2. 靈活的模擬配置：<br>
-支援開發人員自定義儲存設備的配置，例如儲存容量、Page的大小、Block的大小等，模擬不同的硬件配置。
-允許調整儲存設備的性能參數，例如延遲和帶寬，並模擬不同的工作負載情境。<br><br>
-3. 模擬工作負載：<br>
-模擬真實世界的工作負載，用於測試不同的存儲存管理策略和優化技術。
-模擬並行的讀寫操作、隨機存取模式、大量讀取寫入等，以研究儲存系統在不同情境下的性能。
+## 1. FEMU (Fast Emulation of Non-Volatile Memory) 簡介
+FEMU 是一款開源的非易失性記憶體（NVM）模擬平台，主要用於存儲系統研究與開發。它能夠模擬現代 NAND Flash 設備的行為，例如讀取、寫入、擦除等操作，幫助開發者分析並優化 SSD 及相關技術。
+
+## 2. FEMU 主要特性
+| 特性 | 說明 |
+|------|------|
+| **高速存儲模擬** | 支援 NAND Flash 讀寫擦除操作，模擬 SSD 行為 |
+| **靈活配置** | 可自定義儲存設備的 Page、Block 大小及延遲參數 |
+| **支持真實負載** | 可模擬並行讀寫、大量 I/O 操作，測試不同策略對 SSD 影響 |
+
+---
 
 # Flash Translation Layer (FTL)
-SSD FTL (Flash Translation Layer) 是一個管理固態硬碟 (SSD) 上數據存取的軟體層，主要功能包括：
-1. 地址映射：將邏輯地址轉換為物理地址，實現邏輯塊與物理塊的對應。
-2. 磨損平衡：均勻分配寫入操作，延長閃存壽命。
-3. 垃圾回收：回收無效數據塊，釋放空間，提升效能。
-4. 錯誤管理：處理讀寫錯誤，確保數據完整性與可靠性。
-5. 電源管理：減少能耗，提高效率。
 
-透過FTL的設計可以延長SSD的壽命及降低操作的成本，因此本專案透過修改FTL的方式來達成目標。
+FTL 是 SSD 內部管理數據存取的軟體層，負責提升性能與壽命。其核心功能如下：
+
+### 1. **地址映射（Logical-to-Physical Mapping）**
+- 由於 NAND Flash 只能按 Block 擦除，FTL 需要將邏輯地址對應到物理地址，減少不必要的擦除操作。
+
+### 2. **磨損平衡（Wear Leveling）**
+- SSD 每個 Block 的擦除次數有限，FTL 會將寫入操作均勻分布，避免某些 Block 先壞掉。
+
+### 3. **垃圾回收（GC, Garbage Collection）**
+- 回收無效數據塊，釋放空間並提升效能，避免因 Free Page 不足導致寫入速度下降。
+
+### 4. **錯誤管理**
+- 透過 ECC（Error Correction Code）檢測並修正 NAND 錯誤，提高 SSD 穩定性。
+
+### 5. **電源管理**
+- 調整 I/O 操作以降低功耗，提升 SSD 續航表現（適用於移動設備）。
+
+---
 
 # 實驗方向
-1. 預搜尋: 通過可用儲存空間預先搜尋的機制，降低原架構搜尋可用儲存空間的時間。
-2. EC Value: 此指標代表特定大小儲存空間擦除時所需成本，愈大則代表擦除成本愈高，透過此指標可降低擦除時的成本。 
+
+## 1️⃣ 預搜尋機制（Pre-Search）
+- 原始架構需要遍歷所有 Block 來搜尋可用存儲空間，導致搜索時間長。
+- 本專案提出的 **Subblock 預搜尋機制** 可以更快定位可用空間，減少搜尋時間。
+
+## 2️⃣ EC Value 優化（Erase Cost Value）
+- EC Value 衡量擦除成本，數值越大代表擦除開銷越高。
+- 透過 Free Page 比例來決定擦除優先順序，降低擦除成本。
+
+---
 
 # 實驗結果
-1. 預搜尋<br>
-   a. 寫入資料量從1GB到4GB增加，總花費的時間也相應增加。<br>
-   b. 原先架構所需的搜尋時間大約是Subblock預搜尋架構的1.06倍至1.19倍。<br>
-   c. 寫入量增加會讓預搜尋架構優化效果更為顯著。<br><br>
-   ![示例圖片](https://github.com/MarkHsieh0603/ssdSimulation/blob/master/FEMU-master/images/PreSearch.PNG)
 
-2. EC Value優化<br>
-   a. 相同的Valid Page和Free Page數量下，Free Page占比越高，擦除成本的降低效果越明顯。<br>
-   b. EC Value優化後對於不同條件下的擦除成本都有一定程度的優化。<br><br>
-![示例圖片](https://github.com/MarkHsieh0603/ssdSimulation/blob/master/FEMU-master/images/EC%20Value.PNG)
+## ✅ 預搜尋優化（Pre-Search）
+- 測試寫入 1GB 至 4GB 資料時，原始架構的搜尋時間為預搜尋架構的 **1.06 至 1.19 倍**。
+- 當寫入量增加，預搜尋的優勢更明顯。
+
+![預搜尋效能比較](https://github.com/MarkHsieh0603/ssdSimulation/blob/master/FEMU-master/images/PreSearch.PNG)
+
+## ✅ EC Value 優化
+- 在相同 Valid Page 和 Free Page 數量下，當 Free Page 比例越高，EC Value 優化的擦除成本降低幅度越大。
+- 無論在何種條件下，EC Value 方法皆能有效減少擦除開銷。
+
+![EC Value 優化對擦除成本的影響](https://github.com/MarkHsieh0603/ssdSimulation/blob/master/FEMU-master/images/EC%20Value.PNG)
+
