@@ -18,7 +18,7 @@ SSD 以其高速存取特性，廣泛應用於高性能計算、伺服器及數�
 - **測試環境**：FIO
 - **程式語言**：C Language
 - **作業系統**：Linux
-
+- **開發程式碼**：[`ftl.c`](https://github.com/MarkHsieh0603/ssdSimulation/blob/master/FEMU-master/hw/femu/bbssd/ftl.c)、[`ftl.h`](https://github.com/MarkHsieh0603/ssdSimulation/blob/master/FEMU-master/hw/femu/bbssd/ftl.h)
 ---
 
 # FEMU 介紹
